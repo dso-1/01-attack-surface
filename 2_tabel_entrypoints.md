@@ -1,5 +1,5 @@
 
-## A. REST API Entry Points (OJS)
+## D. REST API Entry Points (OJS)
 
 | Endpoint | Method | Deskripsi | Risiko | Status | Evidence |
 |----------|--------|----------|--------|--------|----------|
@@ -8,7 +8,7 @@
 | /api/v1/submissions | GET/POST | Data submission | IDOR | 301 | Redirect ke /api/v1/submissions/ |
 | /api/v1/contexts | GET | Data jurnal | Info Disclosure | 301 | Redirect ke /api/v1/contexts/ |
 
-## B. Admin Entry Points
+## E. Admin Entry Points
 
 | Endpoint | Method | Deskripsi | Risiko | Status | Evidence |
 |----------|--------|----------|--------|--------|----------|
