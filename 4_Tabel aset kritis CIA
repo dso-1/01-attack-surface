@@ -1,98 +1,94 @@
-# Tabel Aset Kritis — Penilaian CIA (Confidentiality, Integrity, Availability)
+# Tabel Aset Kritis — Klasifikasi CIA Triad
 
 **Target Sistem :** Open Journal Systems (OJS) 3.3.0.8  
 **IP Target :** 10.34.100.178  
 **Web Server :** Apache 2.4.58 (Ubuntu)  
 **Tanggal Pengujian :** 23 Maret 2026  
-**Tim :** kelompok1@devsecops  
+**Tim :** kelompok1@devsecops
 
 ---
 
 ## Skala Penilaian
 
-| Nilai | Tingkat | Keterangan |
-|:-----:|---------|------------|
-| **3** | 🔴 Tinggi | Dampak signifikan jika terjadi pelanggaran |
-| **2** | 🟠 Sedang | Dampak moderat, dapat dimitigasi |
-| **1** | 🟢 Rendah | Dampak minimal, mudah dipulihkan |
+| Tingkat | Keterangan |
+|---------|------------|
+| **Tinggi** | Dampak signifikan jika terjadi pelanggaran — data sensitif / layanan kritis |
+| **Sedang** | Dampak moderat — dapat dimitigasi dengan prosedur tertentu |
+| **Rendah** | Dampak minimal — mudah dipulihkan, tidak bersifat sensitif |
 
-> **Skor Risiko** = C × I × A (maks. 27)  
-> **Kritis** ≥ 18 | **Tinggi** 10–17 | **Sedang** 5–9 | **Rendah** ≤ 4
-
----
-
-## A. Aset Autentikasi & Sesi
-
-| ID | Aset | Deskripsi | C | I | A | Skor | Tingkat Risiko | Temuan Utama |
-|----|------|-----------|:-:|:-:|:-:|:----:|---------------|--------------|
-| A1 | **Kredensial Login Admin** | Username & password akun admin OJS | 3 | 3 | 3 | **27** | 🔴 KRITIS | Ditemukan via brute force: `admin / Admin@123` |
-| A2 | **CSRF Token** | Token proteksi form login & registrasi | 3 | 3 | 2 | **18** | 🔴 KRITIS | Token bersifat statis — dapat dipakai ulang tanpa regenerasi |
-| A3 | **Session Cookie (OJSSID)** | Cookie sesi pengguna yang aktif | 3 | 3 | 2 | **18** | 🔴 KRITIS | Terekspos di HTTP header tanpa flag `HttpOnly` / `Secure` |
-| A4 | **Mekanisme Reset Password** | Endpoint `/login/lostPassword` | 3 | 2 | 2 | **12** | 🟠 TINGGI | Tidak ada rate limiting — rentan spam & account takeover |
-| A5 | **Sistem Registrasi User** | Endpoint `/index/register` | 2 | 2 | 2 | **8** | 🟠 SEDANG | Tidak ada CAPTCHA — rentan mass registration |
+> **Nilai Kritis** ditentukan berdasarkan kombinasi tertinggi dari ketiga aspek CIA.  
+> **Kritis** = minimal dua aspek bernilai Tinggi | **Tinggi** = satu aspek Tinggi | **Sedang** = semua aspek Sedang/Rendah
 
 ---
 
-## B. Aset File & Upload
+## Klasifikasi Aset OJS Berdasarkan CIA Triad
 
-| ID | Aset | Deskripsi | C | I | A | Skor | Tingkat Risiko | Temuan Utama |
-|----|------|-----------|:-:|:-:|:-:|:----:|---------------|--------------|
-| B1 | **Direktori Upload Submission** | `/uploads/` — penyimpanan file artikel | 3 | 3 | 3 | **27** | 🔴 KRITIS | Menerima file berbahaya: `shell.php.jpg`, `shell.php.pdf`, `shell.phtml` |
-| B2 | **File Handler Submission Wizard** | Proses upload melalui `/submission/wizard` | 3 | 3 | 2 | **18** | 🔴 KRITIS | Tidak ada validasi MIME type — double extension lolos filter |
-| B3 | **Plugin Manager Upload** | Fitur install plugin `.tar.gz` | 3 | 3 | 3 | **27** | 🔴 KRITIS | Potensi RCE jika fitur aktif (saat ini dinonaktifkan) |
-| B4 | **Upload Logo / Favicon (Admin Settings)** | Endpoint `/admin/settings` | 1 | 2 | 1 | **2** | 🟢 RENDAH | Validasi file memadai — tidak rentan |
-| B5 | **REST API File Upload** | `/api/v1/submissions` | 2 | 2 | 2 | **8** | 🟠 SEDANG | Terlindungi CSRF validation ketat — tidak rentan dari luar |
-
----
-
-## C. Aset Data & Informasi
-
-| ID | Aset | Deskripsi | C | I | A | Skor | Tingkat Risiko | Temuan Utama |
-|----|------|-----------|:-:|:-:|:-:|:----:|---------------|--------------|
-| C1 | **Data User (Email, Nama, Role)** | Endpoint `/api/v1/users` | 3 | 2 | 2 | **12** | 🟠 TINGGI | Dapat diakses tanpa autentikasi — information disclosure |
-| C2 | **Metadata Artikel (Title, Abstract)** | Endpoint `/article/view/$id` | 2 | 2 | 2 | **8** | 🟠 SEDANG | XSS payload tidak tereksekusi — sistem melakukan encoding |
-| C3 | **Metadata Issue Jurnal** | Endpoint `/issue/view/$id` | 2 | 2 | 2 | **8** | 🟠 SEDANG | XSS tidak berhasil — input disanitasi |
-| C4 | **Data Submission Artikel** | Endpoint `/api/v1/submissions` | 3 | 2 | 2 | **12** | 🟠 TINGGI | Terlindungi (403 Forbidden) — tidak rentan tanpa autentikasi |
-| C5 | **Bio / Profil Pengguna** | Fitur edit profil user | 2 | 2 | 1 | **4** | 🟢 RENDAH | Stored XSS tidak berhasil — output di-encode |
-
----
-
-## D. Aset Infrastruktur & Konfigurasi
-
-| ID | Aset | Deskripsi | C | I | A | Skor | Tingkat Risiko | Temuan Utama |
-|----|------|-----------|:-:|:-:|:-:|:----:|---------------|--------------|
-| D1 | **HTTP Response Header** | Informasi server via `curl -I` | 2 | 1 | 1 | **2** | 🟢 RENDAH | Mengekspos: `Apache/2.4.58`, `OJS/PKP`, `Set-Cookie` tanpa flag aman |
-| D2 | **Admin Dashboard** | Endpoint `/index/admin` | 3 | 3 | 3 | **27** | 🔴 KRITIS | Terlindungi redirect ke login — tidak rentan akses langsung |
-| D3 | **Manajemen Plugin Admin** | Endpoint `/admin/plugins` | 3 | 3 | 3 | **27** | 🔴 KRITIS | Akses dibatasi admin saja — upload plugin dinonaktifkan |
-| D4 | **Konfigurasi Site Settings** | Endpoint `/admin/siteSettings` | 2 | 2 | 2 | **8** | 🟠 SEDANG | Tidak ada SSRF / Open Redirect ditemukan |
-| D5 | **Manajemen User Admin** | Endpoint `/admin/users` | 3 | 3 | 2 | **18** | 🔴 KRITIS | RBAC diterapkan dengan benar — tidak ada privilege escalation |
-| D6 | **Port & Service Terbuka** | Port 22 (SSH), Port 80 (HTTP) | 2 | 2 | 2 | **8** | 🟠 SEDANG | SSH OpenSSH 9.6p1 — versi terkini, tidak ada temuan kritis |
-| D7 | **Direktori Aplikasi** | `/api/`, `/cache/`, `/plugins/`, `/tools/` | 2 | 1 | 1 | **2** | 🟢 RENDAH | Ditemukan via Gobuster — sebagian besar redirect (301) |
+| Aset | Confidentiality | Integrity | Availability | Nilai Kritis |
+|------|:--------------:|:---------:|:------------:|:------------:|
+| Data login admin | Tinggi | Tinggi | Sedang | **Kritis** |
+| Naskah unpublished | Tinggi | Tinggi | Sedang | **Kritis** |
+| Data reviewer | Sedang | Tinggi | Sedang | **Tinggi** |
+| Artikel published | Rendah | Tinggi | Tinggi | **Tinggi** |
+| File konfigurasi (`config.inc.php`) | Tinggi | Tinggi | Sedang | **Kritis** |
+| Database credentials | Tinggi | Tinggi | Rendah | **Kritis** |
+| Log file server | Sedang | Sedang | Sedang | **Sedang** |
+| Session cookie (OJSSID) | Tinggi | Tinggi | Sedang | **Kritis** |
+| CSRF Token | Tinggi | Tinggi | Sedang | **Kritis** |
+| Direktori upload (`/uploads/`) | Tinggi | Tinggi | Tinggi | **Kritis** |
+| Data user API (`/api/v1/users`) | Tinggi | Sedang | Sedang | **Tinggi** |
+| Plugin manager | Tinggi | Tinggi | Tinggi | **Kritis** |
+| Metadata artikel (Title, Abstract) | Sedang | Tinggi | Tinggi | **Tinggi** |
+| Profil pengguna (Bio Statement) | Sedang | Sedang | Rendah | **Sedang** |
+| HTTP response header | Sedang | Rendah | Rendah | **Sedang** |
+| Endpoint reset password | Tinggi | Sedang | Sedang | **Tinggi** |
+| Admin dashboard (`/index/admin`) | Tinggi | Tinggi | Tinggi | **Kritis** |
+| Port & service terbuka (22, 80) | Sedang | Sedang | Tinggi | **Sedang** |
 
 ---
 
-## Rekap Ringkasan Risiko
+## Rekap Berdasarkan Nilai Kritis
 
-| Tingkat Risiko | Jumlah Aset | ID Aset |
-|----------------|:-----------:|---------|
-| 🔴 **KRITIS** (Skor ≥ 18) | 8 | A1, A2, A3, B1, B2, B3, D2, D3, D5 |
-| 🟠 **TINGGI** (Skor 10–17) | 4 | A4, C1, C4, D5 |
-| 🟠 **SEDANG** (Skor 5–9) | 7 | A5, B5, C2, C3, D4, D6, B4 |
-| 🟢 **RENDAH** (Skor ≤ 4) | 4 | B4, C5, D1, D7 |
+| Nilai Kritis | Jumlah Aset | Aset |
+|:------------:|:-----------:|------|
+| **Kritis** | 9 | Data login admin, Naskah unpublished, File konfigurasi, Database credentials, Session cookie, CSRF Token, Direktori upload, Plugin manager, Admin dashboard |
+| **Tinggi** | 5 | Data reviewer, Artikel published, Data user API, Metadata artikel, Endpoint reset password |
+| **Sedang** | 4 | Log file server, Profil pengguna, HTTP response header, Port & service terbuka |
+| **Rendah** | 0 | — |
+
+---
+
+## Temuan Pengujian Berdasarkan Aset Kritis
+
+| Aset | Nilai Kritis | Status | Temuan |
+|------|:------------:|:------:|--------|
+| Data login admin | **Kritis** | RENTAN | Kredensial valid ditemukan via brute force: `admin / Admin@123` |
+| Session cookie (OJSSID) | **Kritis** | RENTAN | Terekspos di HTTP header tanpa flag `HttpOnly` / `Secure` |
+| CSRF Token | **Kritis** | RENTAN | Token bersifat statis — dapat digunakan ulang tanpa regenerasi |
+| Direktori upload (`/uploads/`) | **Kritis** | RENTAN | Menerima `shell.php.jpg`, `shell.php.pdf`, `shell.phtml` — potensi RCE |
+| File konfigurasi (`config.inc.php`) | **Kritis** | BELUM DIUJI | Tidak diakses langsung — perlu pengujian path traversal lanjutan |
+| Database credentials | **Kritis** | BELUM DIUJI | Berpotensi terekspos jika RCE dari upload berhasil dieksploitasi |
+| Naskah unpublished | **Kritis** | AMAN | Terlindungi oleh kontrol akses RBAC |
+| Plugin manager | **Kritis** | AMAN | Fitur upload plugin dinonaktifkan — tidak ditemukan kerentanan |
+| Admin dashboard | **Kritis** | AMAN | Redirect ke login jika tidak terautentikasi |
+| Data user API | **Tinggi** | RENTAN | Endpoint `/api/v1/users` dapat diakses tanpa autentikasi |
+| Endpoint reset password | **Tinggi** | RENTAN | Tidak ada rate limiting — rentan spam & user enumeration |
+| Data reviewer | **Tinggi** | AMAN | Terlindungi oleh RBAC — tidak ditemukan IDOR |
+| Artikel published | **Tinggi** | AMAN | XSS payload tidak tereksekusi — output encoding berjalan |
+| Metadata artikel | **Tinggi** | AMAN | Input disanitasi — tidak ada Stored/Reflected XSS |
 
 ---
 
 ## Prioritas Mitigasi
 
-| Prioritas | Aset | Rekomendasi |
-|:---------:|------|-------------|
-| **1** | Kredensial Admin (A1) | Ganti password segera — terapkan kebijakan password kuat |
-| **2** | File Upload B1, B2 | Implementasi validasi MIME type + whitelist extension + simpan di path non-executable |
-| **3** | CSRF Token (A2) | Aktifkan regenerasi token per-request |
-| **4** | Session Cookie (A3) | Tambahkan flag `HttpOnly`, `Secure`, dan `SameSite=Strict` |
-| **5** | Rate Limiting (A4, A5) | Implementasi rate limiting + CAPTCHA pada semua form autentikasi |
-| **6** | User API (C1) | Tambahkan autentikasi wajib pada endpoint `/api/v1/users` |
-| **7** | HTTP Header (D1) | Sembunyikan versi server — tambahkan `ServerTokens Prod` di Apache |
+| Prioritas | Aset | Nilai Kritis | Rekomendasi |
+|:---------:|------|:------------:|-------------|
+| 1 | Data login admin | Kritis | Ganti password segera, terapkan kebijakan password kuat + account lockout |
+| 2 | Direktori upload | Kritis | Validasi MIME type, whitelist extension, simpan di path non-executable |
+| 3 | CSRF Token | Kritis | Aktifkan regenerasi token per-request |
+| 4 | Session cookie | Kritis | Tambahkan flag `HttpOnly`, `Secure`, `SameSite=Strict` |
+| 5 | Data user API | Tinggi | Wajibkan autentikasi pada endpoint `/api/v1/users` |
+| 6 | Endpoint reset password | Tinggi | Implementasi rate limiting dan CAPTCHA |
+| 7 | HTTP response header | Sedang | Sembunyikan versi server dengan `ServerTokens Prod` di konfigurasi Apache |
 
 ---
 
